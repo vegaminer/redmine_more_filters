@@ -87,7 +87,8 @@ module RedmineMoreFilters
           if postgresql?
             "SELECT current_setting('TIMEZONE');"
           elsif mysql?
-            "SELECT @@system_time_zone;"
+            #"SELECT @@system_time_zone;"
+            "SELECT 'UTC';"
           elsif sqlserver?
             "EXEC MASTER.dbo.xp_regread 'HKEY_LOCAL_MACHINE', 'SYSTEM\\CurrentControlSet\\Control\\TimeZoneInformation','TimeZoneKeyName'"
           else
