@@ -25,22 +25,22 @@ module RedmineMoreFilters
       def self.included(base)
         base.send(:include, InstanceMethods)
         base.send(:extend, ClassMethods)
-        
+
         base.class_eval do
           unloadable
-          
+
         end #base
       end #self
-      
+
       module InstanceMethods
       end
-      
+
       module ClassMethods
         # Returns true if the database is a SQLServer
         def sqlserver?
           (ActiveRecord::Base.connection.adapter_name =~ /SQLServer/i).present?
         end
-        
+
         # Returns a SQL statement for relative time
         def relative_time( num, epoch )
           if postgresql?
@@ -51,10 +51,10 @@ module RedmineMoreFilters
             "(DATEADD(#{epoch}, #{num}, CURRENT_TIMESTAMP))"
           end
         end #def
-        
+
         # Returns a SQL statement for local time
         def local_time_sql( table_name, field, time_zone )
-          
+
           if postgresql?
             "#{table_name}.#{field} at time zone '#{db_timezone.downcase}' at time zone '#{time_zone.downcase}'"
           elsif mysql?
@@ -63,43 +63,43 @@ module RedmineMoreFilters
             "Tzdb.ConvertZone(#{table_name}.#{field}, '#{db_timezone}', '#{time_zone}', 1, 1)"
           end
         end #def
-        
+
         # Returns a SQL statement for hour of local clock time
         def local_clock_time_sql( table_name, field, time_zone )
           "CAST(#{local_time_sql(table_name, field, time_zone)} AS TIME)"
         end #def
-        
+
         # Returns a SQL statement for hour of local time
         def hour_of_local_clock_time_sql( table_name, field, time_zone )
-          if postgresql?   
+          if postgresql?
             "CAST(DATE_PART('hour', #{local_clock_time_sql( table_name, field, time_zone)} ) AS INTEGER)"
           elsif mysql?
-            "CAST(hour(#{local_clock_time_sql( table_name, field, time_zone)}) AS INTEGER)"
+            "CAST(hour(#{local_clock_time_sql( table_name, field, time_zone)}) AS UNSIGNED)"
           elsif sqlserver?
             "CAST(DATEPART('hour', #{local_clock_time_sql( table_name, field, time_zone)}) AS INTEGER)"
           else
             nil
           end
         end #def
-        
+
         def query_db_timezone
-          sql = 
+          sql =
           if postgresql?
             "SELECT current_setting('TIMEZONE');"
           elsif mysql?
-            "SELECT @@system_time_zone;"
-            #"SELECT 'UTC';"
+            #"SELECT @@system_time_zone;"
+            "SELECT 'UTC';"
           elsif sqlserver?
             "EXEC MASTER.dbo.xp_regread 'HKEY_LOCAL_MACHINE', 'SYSTEM\\CurrentControlSet\\Control\\TimeZoneInformation','TimeZoneKeyName'"
           else
             nil
           end
-          
+
           if sql
             result = ActiveRecord::Base.connection.exec_query(sql).rows[0]
           end
-          
-          timezone = 
+
+          timezone =
           if result.present?
             if postgresql?
               result[0]
@@ -113,13 +113,13 @@ module RedmineMoreFilters
           else
             nil
           end
-          
+
         end #def
-        
+
         def db_timezone
           @db_timezone ||= query_db_timezone
         end #def
-        
+
       end
     end
   end
@@ -128,6 +128,3 @@ end
 unless Redmine::Database.included_modules.include?(RedmineMoreFilters::Patches::DatabasePatch)
   Redmine::Database.send(:include, RedmineMoreFilters::Patches::DatabasePatch)
 end
-
-
-
